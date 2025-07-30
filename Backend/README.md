@@ -130,6 +130,95 @@ Authenticate a user and return a JWT token upon successful login. Validates emai
 }
 ```
 
+## User Profile
+
+### GET `/users/profile`
+
+**HTTP Method:** GET
+
+**Description:**
+Retrieve the current user's profile information. Requires authentication via JWT token in Authorization header or cookie.
+
+**Authentication Required:** Yes (JWT Token)
+
+**Headers:**
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+**Response (200):**
+
+```json
+{
+  "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+  "email": "user@example.com",
+  "fullname": {
+    "firstname": "John",
+    "lastname": "Doe"
+  },
+  "createdAt": "2024-01-15T10:30:00.000Z",
+  "updatedAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Access denied. No token provided."
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Invalid token"
+}
+```
+
+## User Logout
+
+### POST `/users/logout`
+
+**HTTP Method:** POST
+
+**Description:**
+Logout the current user by invalidating their JWT token. The token is added to a blacklist to prevent reuse.
+
+**Authentication Required:** Yes (JWT Token)
+
+**Headers:**
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+**Response (200):**
+
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Access denied. No token provided."
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Invalid token"
+}
+```
+
 ## 📝 Notes
 
 ### 1. Why We Use `select: false` in Mongoose Models - Simple Explanation
@@ -428,3 +517,158 @@ app.use(cors()); // ❌ CORS after routes
 
 💡 **Think of middleware as a pipeline:**
 Request → Middleware 1 → Middleware 2 → Middleware 3 → Your Route Handler → Response
+
+### 7. Why We Use Token Blacklisting for Logout
+
+When a user logs out, we need to make sure their JWT token can't be used again. This is where **token blacklisting** comes in.
+
+🔒 **The Problem with JWT Logout:**
+
+```javascript
+// ❌ Without blacklisting - DANGEROUS!
+// User logs out, but their token is still valid until it expires
+// Someone could steal the token and use it even after logout
+```
+
+✅ **The Solution - Token Blacklisting:**
+
+```javascript
+// ✅ With blacklisting - SECURE!
+module.exports.logoutUser = async (req, res, next) => {
+  const token = req.cookies.token || req.headers.authorization.split(" ")[1];
+  await blacklistTokenModel.create({ token }); // 👈 Add to blacklist
+  res.clearCookie("token");
+  res.status(200).json({ message: "Logged out successfully" });
+};
+```
+
+#### **How Token Blacklisting Works:**
+
+**1. Blacklist Database Table:**
+
+```javascript
+// blacklistToken.model.js
+const blacklistTokenSchema = new mongoose.Schema({
+  token: { type: String, required: true, unique: true },
+  createdAt: { type: Date, default: Date.now, expires: 24 * 60 * 60 }, // Auto-delete after 24 hours
+});
+```
+
+**2. Authentication Middleware Check:**
+
+```javascript
+// auth.middleware.js
+const isTokenBlacklisted = await blacklistTokenModel.findOne({ token });
+if (isTokenBlacklisted) {
+  return res.status(401).json({ message: "Token has been invalidated" });
+}
+```
+
+#### **Why Token Blacklisting is Important:**
+
+🔐 **Security Benefits:**
+
+- **Immediate Invalidation**: Token becomes useless instantly after logout
+- **Prevents Reuse**: Stolen tokens can't be used after logout
+- **Session Control**: Users can't access protected routes after logout
+
+❌ **Without Blacklisting:**
+
+```javascript
+// User logs out
+POST / users / logout;
+
+// But token is still valid until expiration (could be days!)
+// Someone with the token can still access:
+GET / users / profile; // ❌ Still works!
+POST / users / update; // ❌ Still works!
+```
+
+✅ **With Blacklisting:**
+
+```javascript
+// User logs out
+POST / users / logout;
+// Token added to blacklist
+
+// Now any request with that token fails:
+GET / users / profile; // ❌ "Token has been invalidated"
+POST / users / update; // ❌ "Token has been invalidated"
+```
+
+#### **Complete Logout Flow:**
+
+1. **User requests logout:**
+
+```javascript
+POST /users/logout
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+2. **Server processes logout:**
+
+```javascript
+// Extract token from request
+const token = req.headers.authorization.split(" ")[1];
+
+// Add to blacklist database
+await blacklistTokenModel.create({ token });
+
+// Clear cookie (if using cookies)
+res.clearCookie("token");
+
+// Send success response
+res.json({ message: "Logged out successfully" });
+```
+
+3. **Future requests with that token fail:**
+
+```javascript
+// Any subsequent request with the same token
+GET /users/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+// Returns: 401 "Token has been invalidated"
+```
+
+#### **Alternative Approaches:**
+
+**1. Short Token Expiry:**
+
+```javascript
+// Set tokens to expire quickly (e.g., 15 minutes)
+// But this means users need to login frequently
+```
+
+**2. Refresh Token Pattern:**
+
+```javascript
+// Use short-lived access tokens + long-lived refresh tokens
+// More complex but more secure
+```
+
+**3. Server-Side Sessions:**
+
+```javascript
+// Store sessions in database/Redis
+// But loses JWT's stateless benefits
+```
+
+#### **Best Practices for Token Blacklisting:**
+
+✅ **Do:**
+
+- Use database with TTL (Time To Live) for auto-cleanup
+- Check blacklist in authentication middleware
+- Clear cookies on logout
+- Use HTTPS for all token transmission
+
+❌ **Don't:**
+
+- Store blacklisted tokens in memory (lost on server restart)
+- Forget to check blacklist in auth middleware
+- Use long-lived tokens without blacklisting
+- Store tokens in localStorage (vulnerable to XSS)
+
+💡 **Summary:**
+Token blacklisting ensures that when a user logs out, their token becomes immediately invalid, providing true logout functionality and enhanced security for your application.
