@@ -4,6 +4,11 @@
 
 ### POST `/users/register`
 
+**HTTP Method:** POST
+
+**Description:**
+Register a new user account. Creates a new user with email, password, and full name. Password is automatically hashed and a JWT authentication token is returned upon successful registration.
+
 **Request:**
 
 ```json
