@@ -219,6 +219,107 @@ Authorization: Bearer <your-jwt-token>
 }
 ```
 
+## Captain Registration
+
+### POST `/captains/register`
+
+**HTTP Method:** POST
+
+**Description:**
+Register a new captain account. Creates a new captain with personal information, vehicle details, and authentication credentials. Returns a JWT token upon successful registration.
+
+**Request:**
+
+```json
+{
+  "fullname": {
+    "firstname": "John",
+    "lastname": "Doe"
+  },
+  "email": "captain@example.com",
+  "password": "password123",
+  "vehicle": {
+    "color": "White",
+    "plate": "ABC123",
+    "capacity": 4,
+    "vehicleType": "car"
+  }
+}
+```
+
+**Field Requirements:**
+
+**Personal Information:**
+
+- `fullname.firstname`: String, required, min 3 characters
+- `fullname.lastname`: String, required, min 3 characters
+- `email`: String, required, valid email format, unique
+- `password`: String, required, min 6 characters
+
+**Vehicle Information:**
+
+- `vehicle.color`: String, required, min 3 characters
+- `vehicle.plate`: String, required, min 3 characters
+- `vehicle.capacity`: Number, required, min 1
+- `vehicle.vehicleType`: String, required, enum: ["car", "motorcycle", "auto"]
+
+**Response (201):**
+
+```json
+{
+  "message": "Captain registered successfully",
+  "captain": {
+    "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+    "fullname": {
+      "firstname": "John",
+      "lastname": "Doe"
+    },
+    "email": "captain@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "location": {
+      "latitude": null,
+      "longitude": null
+    }
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Error (400):**
+
+```json
+{
+  "errors": [
+    {
+      "msg": "First name must be at least 3 characters long",
+      "path": "fullname.firstname"
+    },
+    {
+      "msg": "Please enter a valid email address",
+      "path": "email"
+    },
+    {
+      "msg": "Vehicle type must be one of: car, motorcycle, auto",
+      "path": "vehicle.vehicleType"
+    }
+  ]
+}
+```
+
+**Error (400):**
+
+```json
+{
+  "message": "Captain already exists"
+}
+```
+
 ## 📝 Notes
 
 ### 1. Why We Use `select: false` in Mongoose Models - Simple Explanation
