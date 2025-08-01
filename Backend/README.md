@@ -269,12 +269,12 @@ Register a new captain account. Creates a new captain with personal information,
 {
   "message": "Captain registered successfully",
   "captain": {
-    "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
     "fullname": {
       "firstname": "John",
       "lastname": "Doe"
     },
-    "email": "captain@example.com",
+    "email": "gautam@example.com",
+    "password": "$2b$10$FRPJcAgMvWzAuD7K/Ovune0nbS2uByRWACAJQu61c0WT96rEzLDTK",
     "status": "inactive",
     "vehicle": {
       "color": "White",
@@ -282,12 +282,10 @@ Register a new captain account. Creates a new captain with personal information,
       "capacity": 4,
       "vehicleType": "car"
     },
-    "location": {
-      "latitude": null,
-      "longitude": null
-    }
+    "_id": "688c28c64aeb513a8557ccce",
+    "__v": 0
   },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODhjMjhjNjRhZWI1MTNhODU1N2NjY2UiLCJpYXQiOjE3NTQwMTU5NDIsImV4cCI6MTc1NDEwMjM0Mn0.YsLbh_5gyaOVQ-mxAY3uLO8m_NO88lheA6q-ow78fLQ"
 }
 ```
 
@@ -317,6 +315,189 @@ Register a new captain account. Creates a new captain with personal information,
 ```json
 {
   "message": "Captain already exists"
+}
+```
+
+## Captain Login
+
+### POST `/captains/login`
+
+**HTTP Method:** POST
+
+**Description:**
+Authenticate a captain and return a JWT token upon successful login. Validates email and password, then returns the authentication token along with captain information.
+
+**Request:**
+
+```json
+{
+  "email": "captain@example.com",
+  "password": "password123"
+}
+```
+
+**Field Requirements:**
+
+- `email`: String, required, valid email format
+- `password`: String, required, min 6 characters
+
+**Response (200):**
+
+```json
+{
+  "message": "Captain logged in successfully",
+  "captain": {
+    "_id": "688c28c64aeb513a8557ccce",
+    "fullname": {
+      "firstname": "John",
+      "lastname": "Doe"
+    },
+    "email": "gautam@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "__v": 0
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODhjMjhjNjRhZWI1MTNhODU1N2NjY2UiLCJpYXQiOjE3NTQwMTY0NDgsImV4cCI6MTc1NDEwMjg0OH0.fogv8QiadxjiYSVvEhy-0R9V5OrbHf9OGfAQMv_b8LI"
+}
+```
+
+**Error (400):**
+
+```json
+{
+  "errors": [
+    {
+      "msg": "Invalid email",
+      "path": "email"
+    },
+    {
+      "msg": "Password must be at least 6 characters",
+      "path": "password"
+    }
+  ]
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Invalid email or password"
+}
+```
+
+## Captain Profile
+
+### GET `/captains/profile`
+
+**HTTP Method:** GET
+
+**Description:**
+Retrieve the current captain's profile information. Requires authentication via JWT token in Authorization header or cookie.
+
+**Authentication Required:** Yes (JWT Token)
+
+**Headers:**
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+**Cookies:**
+
+```
+token=<your-jwt-token>
+```
+
+**Response (200):**
+
+```json
+{
+  "message": "Captain profile fetched successfully",
+  "captain": {
+    "_id": "688c28c64aeb513a8557ccce",
+    "fullname": {
+      "firstname": "John",
+      "lastname": "Doe"
+    },
+    "email": "gautam@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "__v": 0
+  }
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Unauthorized - No token provided"
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Unauthorized - Invalid token"
+}
+```
+
+## Captain Logout
+
+### POST `/captains/logout`
+
+**HTTP Method:** POST
+
+**Description:**
+Logout the current captain by invalidating their JWT token. The token is added to a blacklist to prevent reuse.
+
+**Authentication Required:** Yes (JWT Token)
+
+**Headers:**
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+**Cookies:**
+
+```
+token=<your-jwt-token>
+```
+
+**Response (200):**
+
+```json
+{
+  "message": "Captain logged out successfully"
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Unauthorized - No token provided"
+}
+```
+
+**Error (401):**
+
+```json
+{
+  "message": "Unauthorized - Invalid token"
 }
 ```
 

@@ -24,3 +24,7 @@ module.exports.createCaptain = async (captainData) => {
   } })
   return captain
 }
+
+module.exports.findCaptainByEmail = async (email) => {
+  return await captainModel.findOne({email}).select('+password')
+}
